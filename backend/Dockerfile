@@ -16,7 +16,7 @@ RUN curl -sL https://deb.nodesource.com/setup_20.x | bash - \
 WORKDIR /app
 
 COPY composer.json /app/composer.json
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+RUN composer update --no-interaction --prefer-dist --optimize-autoloader
 
 COPY . /app
 

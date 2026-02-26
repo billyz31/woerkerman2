@@ -5,7 +5,7 @@ RUN php -r "copy('https://getcomposer.org/installer','composer-setup.php');" \
     && rm composer-setup.php
 WORKDIR /app
 COPY composer.json /app/composer.json
-RUN composer install --no-interaction --prefer-dist
+RUN composer update --no-interaction --prefer-dist
 COPY server.php /app/server.php
 EXPOSE 3001
 CMD ["php", "/app/server.php", "start"]
