@@ -12,6 +12,14 @@ services:
       DB_USERNAME: ${DB_USERNAME:-game}
       DB_PASSWORD: ${DB_PASSWORD:-game}
 
+  websocket:
+    build:
+      context: ./websocket
+    image: game/websocket:latest
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+
   frontend:
     build:
       context: ./frontend
