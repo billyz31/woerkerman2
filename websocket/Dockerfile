@@ -1,11 +1,11 @@
 FROM php:8.3-cli
 RUN apt-get update && apt-get install -y git unzip curl && docker-php-ext-install pcntl
-RUN php -r "copy('https://getcomposer.org/installer','composer-setup.php');" \
-    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-    && rm composer-setup.php
-WORKDIR /app
-COPY composer.json /app/composer.json
-RUN composer update --no-interaction --prefer-dist
-COPY server.php /app/server.php
+RUN curl -o /tmp/workerman.tar.gz https://github.com/walkor/workerman/archive/refs/tags/v5.1.0.tar.gz \
+    && mkdir -p /tmp/workerman \
+    && tar -xzf /tmp/workerman.tar.gz -C /tmp/workerman \
+    && cp -r /tmp/workerman/workerman-5.1.0/Applications/Workerman /tmp/workerman/workerman-5.1.0/Autoloader.php /var/www/ \
+    && rm -rf /tmp/workerman*
+WORKDIR /var/www
+COPY server.php /var/www/server.php
 EXPOSE 3001
-CMD ["php", "/app/server.php", "start"]
+CMD ["php", "/var/www/server.php", "start"]

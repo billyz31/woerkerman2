@@ -1,10 +1,8 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
-
 $backendUrl = getenv('BACKEND_URL') ?: 'http://backend:8080';
 
-$worker = new \Workerman\Worker('websocket://0.0.0.0:3001');
+$worker = new Worker("websocket://0.0.0.0:3001");
 
 $worker->onMessage = function($connection, $data) use ($backendUrl) {
     $message = json_decode($data, true);
@@ -53,4 +51,4 @@ $worker->onClose = function($connection) {
 };
 
 echo "WebSocket server starting on port 3001...\n";
-\Workerman\Worker::runAll();
+Worker::runAll();

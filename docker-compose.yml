@@ -1,76 +1,18 @@
 services:
-  secrets:
-    image: alpine:3.19
-    restart: "no"
-    volumes:
-      - secrets_data:/run/secrets
-    entrypoint:
-      - sh
-      - -c
-      - |
-        set -e
-        umask 077
-        apk add --no-cache openssl >/dev/null 2>&1
-        for name in mysql_root_password mysql_password redis_password jwt_secret; do
-          if [ ! -s "/run/secrets/$$name" ]; then
-            openssl rand -hex 24 > "/run/secrets/$$name"
-          fi
-        done
-
   backend:
-    build:
-      context: ./backend
-    image: game/backend:0.0.1
+    image: php:8.3-cli
     restart: unless-stopped
+    working_dir: /var/www
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/var/www
+    command: php -S 0.0.0.0:8080 -t /var/www
     environment:
-      APP_ENV: ${APP_ENV:-production}
-      APP_DEBUG: ${APP_DEBUG:-false}
       DB_HOST: ${DB_HOST:-mysql}
-      DB_PORT: ${DB_PORT:-3306}
       DB_DATABASE: ${DB_DATABASE:-game}
       DB_USERNAME: ${DB_USERNAME:-game}
-      DB_PASSWORD_FILE: /run/secrets/mysql_password
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD_FILE: /run/secrets/redis_password
-      JWT_SECRET_FILE: /run/secrets/jwt_secret
-      JWT_TTL: ${JWT_TTL:-3600}
-      WALLET_CACHE_TTL: ${WALLET_CACHE_TTL:-30}
-      SLOT_MIN_BET: ${SLOT_MIN_BET:-1}
-      SLOT_MAX_BET: ${SLOT_MAX_BET:-1000}
-    volumes:
-      - secrets_data:/run/secrets:ro
-    depends_on:
-      - secrets
-      - mysql
-      - redis
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  websocket:
-    build:
-      context: ./websocket
-    image: game/websocket:0.0.1
-    restart: unless-stopped
-    environment:
-      BACKEND_URL: ${BACKEND_URL:-http://backend:8080}
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD_FILE: /run/secrets/redis_password
-    volumes:
-      - secrets_data:/run/secrets:ro
-    depends_on:
-      - secrets
-      - redis
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1',3001)===false);\""]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      DB_PASSWORD: ${DB_PASSWORD:-game}
 
   frontend:
     build:
@@ -92,39 +34,24 @@ services:
       - "3000:80"
     depends_on:
       - backend
-      - websocket
       - frontend
 
   mysql:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-game}
       MYSQL_USER: ${MYSQL_USER:-game}
-      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-game}
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d:ro
       - mysql_data:/var/lib/mysql
-      - secrets_data:/run/secrets:ro
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$(cat /run/secrets/mysql_root_password)"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -prootpass"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: ["sh","-c","exec redis-server --requirepass \"$(cat /run/secrets/redis_password)\""]
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - secrets_data:/run/secrets:ro
 
 volumes:
   mysql_data:
-  secrets_data:
