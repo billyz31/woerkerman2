@@ -4,6 +4,8 @@ services:
       context: ./backend
     image: game/backend:latest
     restart: unless-stopped
+    ports:
+      - "8080:8080"
     environment:
       DB_HOST: ${DB_HOST:-mysql}
       DB_DATABASE: ${DB_DATABASE:-game}
@@ -15,6 +17,8 @@ services:
       context: ./frontend
     image: game/frontend:latest
     restart: unless-stopped
+    ports:
+      - "3000:80"
 
   mysql:
     image: mysql:8.0
