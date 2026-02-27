@@ -1,9 +1,8 @@
 {
-  "name": "game-websocket",
+  "name": "game/websocket",
   "type": "project",
   "require": {
     "php": "^8.3",
-    "workerman/workerman": "^5.0",
-    "firebase/php-jwt": "^6.0"
+    "workerman/workerman": "^5.0"
   }
 }
