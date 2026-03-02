@@ -3,6 +3,7 @@ import { useState } from "react";
 interface Service {
   name: string;
   status: "pending" | "ok" | "error";
+  time?: number;
   message?: string;
 }
 
@@ -28,19 +29,24 @@ export default function App() {
 
     // Frontend
     try {
+      const start = performance.now();
       const res = await fetch("/");
-      results.push({ name: "Frontend", status: res.ok ? "ok" : "error" });
+      const time = Math.round(performance.now() - start);
+      results.push({ name: "Frontend", status: res.ok ? "ok" : "error", time });
     } catch {
       results.push({ name: "Frontend", status: "error", message: "Connection failed" });
     }
 
     // Backend
     try {
+      const start = performance.now();
       const res = await fetch("/health");
+      const time = Math.round(performance.now() - start);
       const json = await res.json();
       results.push({ 
         name: "Backend (API)", 
         status: json.status === "ok" ? "ok" : "error",
+        time,
         message: json.status === "ok" ? json.time : json.message 
       });
     } catch (e) {
@@ -49,25 +55,34 @@ export default function App() {
 
     // WebSocket
     try {
+      const start = performance.now();
       const ws = new WebSocket("ws://localhost:3001");
-      ws.onopen = () => {
-        results.push({ name: "WebSocket", status: "ok" });
-        ws.close();
-      };
-      ws.onerror = () => {
-        results.push({ name: "WebSocket", status: "error" });
-      };
+      await new Promise<void>((resolve, reject) => {
+        ws.onopen = () => {
+          const time = Math.round(performance.now() - start);
+          results.push({ name: "WebSocket", status: "ok", time });
+          ws.close();
+          resolve();
+        };
+        ws.onerror = () => {
+          results.push({ name: "WebSocket", status: "error" });
+          reject();
+        };
+      });
     } catch {
       results.push({ name: "WebSocket", status: "error" });
     }
 
     // MySQL (via backend)
     try {
+      const start = performance.now();
       const res = await fetch("/api/db-health");
+      const time = Math.round(performance.now() - start);
       const json = await res.json();
       results.push({ 
         name: "MySQL", 
         status: json.success ? "ok" : "error",
+        time,
         message: json.message || (json.success ? "Connected" : "Failed")
       });
     } catch (e) {
@@ -79,7 +94,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 600, margin: "40px auto", padding: 20 }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 700, margin: "40px auto", padding: 20 }}>
       <h1 style={{ marginBottom: 20 }}>Service Status</h1>
       
       <button 
@@ -104,6 +119,7 @@ export default function App() {
           <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
             <th style={{ padding: 12 }}>Service</th>
             <th style={{ padding: 12 }}>Status</th>
+            <th style={{ padding: 12 }}>Response Time</th>
             <th style={{ padding: 12 }}>Message</th>
           </tr>
         </thead>
@@ -118,6 +134,9 @@ export default function App() {
                 }}>
                   {s.status === "pending" ? "-" : s.status === "ok" ? "OK" : "ERROR"}
                 </span>
+              </td>
+              <td style={{ padding: 12, color: s.time ? (s.time < 100 ? "green" : s.time < 500 ? "orange" : "red") : "#999" }}>
+                {s.time !== undefined ? `${s.time}ms` : "-"}
               </td>
               <td style={{ padding: 12, color: "#666" }}>{s.message || "-"}</td>
             </tr>
