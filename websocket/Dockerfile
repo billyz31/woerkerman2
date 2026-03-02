@@ -9,4 +9,4 @@ RUN composer require workerman/workerman --no-interaction --no-update
 RUN composer update --no-interaction --prefer-dist --ignore-platform-reqs
 COPY server.php /app/server.php
 EXPOSE 3001
-CMD ["php", "/app/server.php", "start", "-d"]
+CMD ["php", "/app/server.php", "start"]
