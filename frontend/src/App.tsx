@@ -56,7 +56,9 @@ export default function App() {
     // WebSocket
     try {
       const start = performance.now();
-      const ws = new WebSocket("ws://localhost:3001");
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.host;
+      const ws = new WebSocket(wsProtocol + "//" + wsHost + "/ws");
       await new Promise<void>((resolve, reject) => {
         ws.onopen = () => {
           const time = Math.round(performance.now() - start);
